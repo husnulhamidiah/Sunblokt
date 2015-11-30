@@ -1,6 +1,7 @@
 package com.example.hamidiah.sunblokt.app;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -158,6 +159,8 @@ public class SunbloktActivityFragment extends Fragment {
             // current day, we're going to take advantage of that to get a nice
             // normalized UTC date for all of our weather.
 
+
+            // TODO : Use Georgian Calendar instead of Time which is deprecated since API level 22.
             Time dayTime = new Time();
             dayTime.setToNow();
 
@@ -216,13 +219,36 @@ public class SunbloktActivityFragment extends Fragment {
 
             // Will contain the raw JSON response as a string.
             String forecastJsonStr = null;
+
+            String city = "malang,id";
+            String format = "json";
+            String units = "metric";
+            String appid = "92f6755537b42a23e8128d599de128f1";
             int numDays = 7;
 
             try {
                 // Construct the URL for the OpenWeatherMap query
                 // Possible parameters are avaiable at OWM's forecast API page, at
                 // http://openweathermap.org/API#forecast
-                URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=malang,id&mode=json&units=metric&cnt=7&appid=92f6755537b42a23e8128d599de128f1");
+                final String FORECAST_BASE_URL = "http://api.openweathermap.org/data/2.5/forecast/daily?";
+                final String QUERY_PARAM = "q";
+                final String FORMAT_PARAM = "mode";
+                final String UNITS_PARAM = "units";
+                final String DAYS_PARAM = "cnt";
+                final String APP_KEY = "appid";
+
+                Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
+                        .appendQueryParameter(QUERY_PARAM, city)
+                        .appendQueryParameter(FORMAT_PARAM, format)
+                        .appendQueryParameter(UNITS_PARAM, units)
+                        .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
+                        .appendQueryParameter(APP_KEY, appid)
+                        .build();
+
+                URL url = new URL(builtUri.toString());
+                // URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=malang,id&mode=json&units=metric&cnt=7&appid=92f6755537b42a23e8128d599de128f1");
+
+                Log.v(LOG_TAG, "Built URI : " + builtUri.toString());
 
                 // Create the request to OpenWeatherMap, and open the connection
                 urlConnection = (HttpURLConnection) url.openConnection();
