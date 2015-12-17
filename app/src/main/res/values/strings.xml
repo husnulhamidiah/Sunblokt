@@ -7,5 +7,48 @@
     <string name="action_location">Location</string>
 
     <string name="title_activity_detail">Forecast Detail</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="title_activity_preference">Settings</string>
 
+    <!-- Strings related to Settings -->
+
+    <!-- General settings -->
+    <string name="pref_header_general">General</string>
+
+    <string name="pref_location_title" translatable="false">Location</string>
+    <string name="pref_location_summary" translatable="false">Choose a location (City,Country ID)</string>
+    <string name="pref_location_default" translatable="false">Malang</string>
+    <string name="pref_location_key">location</string>
+
+    <string name="pref_temperature_unit_title">Temperature Unit</string>
+    <string-array name="pref_temperature_unit_list">
+        <item>Metric / °C</item>
+        <item>Imperial / °F</item>
+    </string-array>
+    <string-array name="pref_temperature_unit_values">
+        <item>1</item>
+        <item>0</item>
+    </string-array>
+    <string name="pref_temperature_unit_metric">1</string>
+    <string name="pref_temperature_unit_imperial">0</string>
+    <string name="pref_temperature_unit_key">unit</string>
+
+    <!-- Advance settings -->
+    <string name="pref_advance_header">Advance Settings</string>
+    <string name="pref_advance_summary">Use it wisely. May cause force close.</string>
+
+    <string name="pref_advance_title" translatable="false">Enable Advance Settings</string>
+    <string name="pref_advance_key">advance</string>
+
+    <string name="pref_lat_title" translatable="false">Latitude</string>
+    <string name="pref_lat_default" translatable="false">-7.9797</string>
+    <string name="pref_lat_key">latitude</string>
+
+    <string name="pref_lon_title" translatable="false">Longitude</string>
+    <string name="pref_lon_default" translatable="false">112.630402</string>
+    <string name="pref_lon_key">longitude</string>
+
+    <string name="pref_map_title" translatable="false">Pick From Map</string>
+    <string name="pref_map_summary" translatable="false">Pick latitude and longitude directly from map.</string>
+    <string name="pref_map_key">map</string>
 </resources>

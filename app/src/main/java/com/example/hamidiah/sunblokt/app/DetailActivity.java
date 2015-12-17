@@ -1,7 +1,8 @@
 package com.example.hamidiah.sunblokt.app;
 
-import android.support.v7.app.AppCompatActivity;
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -30,6 +31,7 @@ public class DetailActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            startActivity(new Intent(this, PreferenceActivity.class));
             return true;
         }
 

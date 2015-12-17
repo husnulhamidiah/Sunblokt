@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.preference.PreferenceActivity;
 import android.support.v4.app.Fragment;
 import android.text.format.Time;
 import android.util.Log;
@@ -58,6 +57,7 @@ public class SunbloktActivityFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_settings) {
+            startActivity(new Intent(getActivity(), PreferenceActivity.class));
             return true;
         } else if (id == R.id.action_refresh) {
             updateWeather();
