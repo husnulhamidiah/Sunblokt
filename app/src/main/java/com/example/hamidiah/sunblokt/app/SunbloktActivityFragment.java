@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceActivity;
 import android.support.v4.app.Fragment;
 import android.text.format.Time;
 import android.util.Log;
@@ -16,6 +17,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -29,7 +31,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -66,6 +67,13 @@ public class SunbloktActivityFragment extends Fragment {
         return super.onOptionsItemSelected(item);
     }
 
+    private void updateWeather() {
+        FetchWeatherTask weatherTask = new FetchWeatherTask();
+
+        // TODO : Get city from SharedPreferences and execute as parameter
+        weatherTask.execute("Malang");
+    }
+
     @Override
     public void onStart() {
         super.onStart();
@@ -78,7 +86,7 @@ public class SunbloktActivityFragment extends Fragment {
 
         View rootView = inflater.inflate(R.layout.fragment_sunblokt, container, false);
 
-        List<String> weekForecast = new ArrayList<>();
+        List<String> weekForecast = new ArrayList<String>();
 
         mForecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast_textview, weekForecast);
 
@@ -88,7 +96,7 @@ public class SunbloktActivityFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 String forecast = mForecastAdapter.getItem(position);
-//                Toast.makeText(getActivity(), forecast, Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), forecast, Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(getActivity(), DetailActivity.class)
                         .putExtra(Intent.EXTRA_TEXT, forecast);
                 startActivity(intent);
@@ -98,18 +106,31 @@ public class SunbloktActivityFragment extends Fragment {
         return rootView;
     }
 
-    private void updateWeather() {
-        FetchWeatherTask weatherTask = new FetchWeatherTask();
-        weatherTask.execute("Malang");
-    }
+    public class FetchWeatherTask extends AsyncTask<String, String, List<String>> {
 
-    public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
+        public class ForecastDetails {
+
+            String name;
+            Double lon, lat;
+            List<String> forecasts;
+
+            public ForecastDetails(String name, Double lon, Double lat) {
+                this.name = name;
+                this.lon = lon;
+                this.lat = lat;
+                this.forecasts = new ArrayList<>();
+            }
+
+            public void addForecast(String forecast) {
+                this.forecasts.add(forecast);
+            }
+        }
 
         private final String LOG_TAG = FetchWeatherTask.class.getSimpleName();
 
         /* The date/time conversion code is going to be moved outside the asynctask later,
- * so for convenience we're breaking it out into its own method now.
- */
+         * so for convenience we're breaking it out into its own method now.
+         */
         private String getReadableDateString(long time){
             // Because the API returns a unix timestamp (measured in seconds),
             // it must be converted to milliseconds in order to be converted to valid date.
@@ -121,6 +142,8 @@ public class SunbloktActivityFragment extends Fragment {
          * Prepare the weather high/lows for presentation.
          */
         private String formatHighLows(double high, double low) {
+
+            // TODO : Get unit type from SharedPreferences and do manual conversion
             // For presentation, assume the user doesn't care about tenths of a degree.
             long roundedHigh = Math.round(high);
             long roundedLow = Math.round(low);
@@ -136,10 +159,16 @@ public class SunbloktActivityFragment extends Fragment {
          * Fortunately parsing is easy:  constructor takes the JSON string and converts it
          * into an Object hierarchy for us.
          */
-        private String[] getWeatherDataFromJson(String forecastJsonStr, int numDays)
+        private ForecastDetails getWeatherDataFromJson(String forecastJsonStr, int numDays)
                 throws JSONException {
 
-            // These are the names of the JSON objects that need to be extracted.
+            ForecastDetails forecastResult = null;
+
+            final String OWM_CITY = "city";
+            final String OWM_NAME = "name";
+            final String OWM_COORD = "coord";
+            final String OWM_LON = "lon";
+            final String OWM_LAT = "lat";
             final String OWM_LIST = "list";
             final String OWM_WEATHER = "weather";
             final String OWM_TEMPERATURE = "temp";
@@ -148,6 +177,16 @@ public class SunbloktActivityFragment extends Fragment {
             final String OWM_DESCRIPTION = "main";
 
             JSONObject forecastJson = new JSONObject(forecastJsonStr);
+
+            JSONObject cityJson = forecastJson.getJSONObject(OWM_CITY);
+            String name = cityJson.getString(OWM_NAME);
+
+            JSONObject coordJson = cityJson.getJSONObject(OWM_COORD);
+            Double lon = coordJson.getDouble(OWM_LON);
+            Double lat = coordJson.getDouble(OWM_LAT);
+
+            forecastResult = new ForecastDetails(name, lon, lat);
+
             JSONArray weatherArray = forecastJson.getJSONArray(OWM_LIST);
 
             // OWM returns daily forecasts based upon the local time of the city that is being
@@ -157,7 +196,6 @@ public class SunbloktActivityFragment extends Fragment {
             // Since this data is also sent in-order and the first day is always the
             // current day, we're going to take advantage of that to get a nice
             // normalized UTC date for all of our weather.
-
 
             // TODO : Use Georgian Calendar instead of Time which is deprecated since API level 22.
             Time dayTime = new Time();
@@ -169,7 +207,6 @@ public class SunbloktActivityFragment extends Fragment {
             // now we work exclusively in UTC
             dayTime = new Time();
 
-            String[] resultStrs = new String[numDays];
             for(int i = 0; i < weatherArray.length(); i++) {
                 // For now, using the format "Day, description, hi/low"
                 String day;
@@ -198,21 +235,27 @@ public class SunbloktActivityFragment extends Fragment {
                 double low = temperatureObject.getDouble(OWM_MIN);
 
                 highAndLow = formatHighLows(high, low);
-                resultStrs[i] = day + " - " + description + " - " + highAndLow;
+
+                String forecastStr = day + " - " + description + " - " + highAndLow;
+                forecastResult.addForecast(forecastStr);
             }
 
-            for (String s : resultStrs) {
+            for (String s : forecastResult.forecasts) {
                 Log.v(LOG_TAG, "Forecast entry : " + s);
             }
 
-            return resultStrs;
+            return forecastResult;
         }
 
         @Override
-        protected String[] doInBackground(String... params) {
+        protected List<String> doInBackground(String... params) {
 
-            // These two need to be declared outside the try/catch
-            // so that they can be closed in the finally block.
+            if (params.length == 0) {
+                return null;
+            }
+
+            // These two need to be declared outside the try/catch so that they can be
+            // closed in the finally block.
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
 
@@ -225,28 +268,29 @@ public class SunbloktActivityFragment extends Fragment {
             String appid = "92f6755537b42a23e8128d599de128f1";
             int numDays = 7;
 
+            // TODO : Get advance preference value from SharedPreferences
+
             try {
                 // Construct the URL for the OpenWeatherMap query
-                // Possible parameters are avaiable at OWM's forecast API page, at
-                // http://openweathermap.org/API#forecast
+                // Possible parameters are avaiable at OWM's forecast API page, at http://openweathermap.org/API#forecast
                 final String FORECAST_BASE_URL = "http://api.openweathermap.org/data/2.5/forecast/daily?";
                 final String QUERY_PARAM = "q";
+                final String QUERY_LAT = "lat";
+                final String QUERY_LNG = "lon";
                 final String FORMAT_PARAM = "mode";
                 final String UNITS_PARAM = "units";
                 final String DAYS_PARAM = "cnt";
                 final String APP_KEY = "appid";
 
-                Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
-                        .appendQueryParameter(QUERY_PARAM, city)
+                Uri.Builder builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
                         .appendQueryParameter(FORMAT_PARAM, format)
                         .appendQueryParameter(UNITS_PARAM, units)
                         .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
-                        .appendQueryParameter(APP_KEY, appid)
-                        .build();
+                        .appendQueryParameter(APP_KEY, appid);
 
-                URL url = new URL(builtUri.toString());
-                // URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=malang,id&mode=json&units=metric&cnt=7&appid=92f6755537b42a23e8128d599de128f1");
+                builtUri.appendQueryParameter(QUERY_PARAM, city);
 
+                URL url = new URL(builtUri.build().toString());
                 Log.v(LOG_TAG, "Built URI : " + builtUri.toString());
 
                 // Create the request to OpenWeatherMap, and open the connection
@@ -298,7 +342,9 @@ public class SunbloktActivityFragment extends Fragment {
             }
 
             try {
-                return getWeatherDataFromJson(forecastJsonStr, numDays);
+                ForecastDetails weatherData = getWeatherDataFromJson(forecastJsonStr, numDays);
+                publishProgress(weatherData.name);
+                return weatherData.forecasts;
             } catch (JSONException e) {
                 Log.e("PlaceholderFragment", e.getMessage(), e);
                 e.printStackTrace();
@@ -308,7 +354,13 @@ public class SunbloktActivityFragment extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(String[] result) {
+        protected void onProgressUpdate(String... values) {
+            super.onProgressUpdate(values);
+            Toast.makeText(getActivity(), values[0], Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        protected void onPostExecute(List<String> result) {
             if (result != null) {
                 mForecastAdapter.clear();
                 for (String dayForecastStr : result) {
