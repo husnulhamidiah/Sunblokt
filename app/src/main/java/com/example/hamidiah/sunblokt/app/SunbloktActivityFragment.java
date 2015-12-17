@@ -50,19 +50,26 @@ public class SunbloktActivityFragment extends Fragment {
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.menu_refresh, menu);
+        inflater.inflate(R.menu.menu_sunblokt, menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_refresh) {
-            FetchWeatherTask weatherTask = new FetchWeatherTask();
-            weatherTask.execute();
+        if (id == R.id.action_settings) {
+            return true;
+        } else if (id == R.id.action_refresh) {
+            updateWeather();
             return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateWeather();
     }
 
     @Override
@@ -71,20 +78,7 @@ public class SunbloktActivityFragment extends Fragment {
 
         View rootView = inflater.inflate(R.layout.fragment_sunblokt, container, false);
 
-        // Create some dummy data
-        String[] forecastArray = {
-                "Today - Sunny - 88/54",
-                "Tomorrow - Foggy - 70.40",
-                "Weds - Cloudy - 72/63",
-                "Thrus - Asteroids - 76/56",
-                "Fri - Heavy Rain - 65/56",
-                "Sat - IT CAN'T BE PREDICTED - ??/??",
-                "Sun - Sunny - 78/65"
-        };
-
-        List<String> weekForecast = new ArrayList<>(
-                Arrays.asList(forecastArray)
-        );
+        List<String> weekForecast = new ArrayList<>();
 
         mForecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast_textview, weekForecast);
 
@@ -102,6 +96,11 @@ public class SunbloktActivityFragment extends Fragment {
         });
 
         return rootView;
+    }
+
+    private void updateWeather() {
+        FetchWeatherTask weatherTask = new FetchWeatherTask();
+        weatherTask.execute("Malang");
     }
 
     public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
@@ -220,7 +219,7 @@ public class SunbloktActivityFragment extends Fragment {
             // Will contain the raw JSON response as a string.
             String forecastJsonStr = null;
 
-            String city = "malang,id";
+            String city = params[0];
             String format = "json";
             String units = "metric";
             String appid = "92f6755537b42a23e8128d599de128f1";
