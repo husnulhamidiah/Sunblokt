@@ -1,9 +1,11 @@
 package com.example.hamidiah.sunblokt.app;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.text.format.Time;
 import android.util.Log;
@@ -67,13 +69,6 @@ public class SunbloktActivityFragment extends Fragment {
         return super.onOptionsItemSelected(item);
     }
 
-    private void updateWeather() {
-        FetchWeatherTask weatherTask = new FetchWeatherTask();
-
-        // TODO : Get city from SharedPreferences and execute as parameter
-        weatherTask.execute("Malang");
-    }
-
     @Override
     public void onStart() {
         super.onStart();
@@ -104,6 +99,14 @@ public class SunbloktActivityFragment extends Fragment {
         });
 
         return rootView;
+    }
+
+    private void updateWeather() {
+        FetchWeatherTask weatherTask = new FetchWeatherTask();
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String city = pref.getString(getString(R.string.pref_location_key),
+                getString(R.string.pref_location_default));
+        weatherTask.execute(city);
     }
 
     public class FetchWeatherTask extends AsyncTask<String, String, List<String>> {
@@ -143,7 +146,19 @@ public class SunbloktActivityFragment extends Fragment {
          */
         private String formatHighLows(double high, double low) {
 
-            // TODO : Get unit type from SharedPreferences and do manual conversion
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences((getActivity()));
+            String unitType = pref.getString(
+                    getString(R.string.pref_temperature_unit_key),
+                    getString(R.string.pref_temperature_unit_metric)
+            );
+
+            if (unitType.equals(getString(R.string.pref_temperature_unit_imperial))) {
+                high = (high * 1.8) + 32;
+                low = (low * 1.8) + 32;
+            } else if (!unitType.equals(getString(R.string.pref_temperature_unit_metric))) {
+                Log.d(LOG_TAG, "Unit type not found :" + unitType);
+            }
+
             // For presentation, assume the user doesn't care about tenths of a degree.
             long roundedHigh = Math.round(high);
             long roundedLow = Math.round(low);
@@ -268,7 +283,14 @@ public class SunbloktActivityFragment extends Fragment {
             String appid = "92f6755537b42a23e8128d599de128f1";
             int numDays = 7;
 
-            // TODO : Get advance preference value from SharedPreferences
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            Boolean isAdvance = pref.getBoolean(getString(R.string.pref_advance_key), false);
+
+            String lat = pref.getString(getString(R.string.pref_lat_key),
+                    getString(R.string.pref_lat_default));
+
+            String lng = pref.getString(getString(R.string.pref_lon_key),
+                    getString(R.string.pref_lon_default));
 
             try {
                 // Construct the URL for the OpenWeatherMap query
@@ -288,7 +310,12 @@ public class SunbloktActivityFragment extends Fragment {
                         .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
                         .appendQueryParameter(APP_KEY, appid);
 
-                builtUri.appendQueryParameter(QUERY_PARAM, city);
+                if (isAdvance) {
+                    builtUri.appendQueryParameter(QUERY_LAT, lat);
+                    builtUri.appendQueryParameter(QUERY_LNG, lng);
+                } else {
+                    builtUri.appendQueryParameter(QUERY_PARAM, city);
+                }
 
                 URL url = new URL(builtUri.build().toString());
                 Log.v(LOG_TAG, "Built URI : " + builtUri.toString());
